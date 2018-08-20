@@ -19,7 +19,7 @@ DBDiff requires PHP 7.1 or above.
 
 Install with Composer:
 
-	$ composer require gbradley/diffdb
+	$ composer require gbradley/dbdiff
 
 ## Usage
 
@@ -42,7 +42,7 @@ If you use a framework with dependency injection such as Laravel, you can instea
 
 Next, use the `columns()` method to specify an array of table columns you wish to compare.
 
-	$diff->connect([
+	$diff->compare([
 		'name',
 		'vendor',
 		'cost',
@@ -81,12 +81,12 @@ By default, calling `output()` will compute the diff and echo the results. Each 
 To do something else with each result, pass a method to `output()` which accepts a single result.
 
 	$diff->output(function($result) {
-		Log::($result);
+		Log::info($result);
 	});
 
 ### Customizing the output format
 
-When using `output()`, the Formatter class is used to format the results for each diff. If needed, you may subclass Formatter and provide an instance of your class to the `format()` method:
+When using `output()`, the `DBDiff\Formatter` class is used to format the results for each diff. If needed, you may subclass Formatter and provide an instance of your class to the `format()` method:
 
 	$diff->format(new MyCustomFormatter);
 	
