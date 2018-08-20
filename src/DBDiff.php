@@ -14,7 +14,7 @@ class DBDiff {
 	protected $database_dest;
 	protected $constraints = [];
 	protected $columns;
-	protected $primary_key;
+	protected $primary_key = 'id';
 	protected $bindings = [];
 	protected $formatter;
 
