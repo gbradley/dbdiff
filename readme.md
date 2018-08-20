@@ -1,0 +1,104 @@
+# DiffDB
+
+Diffs for your SQL database tables. DiffDB lets you compare the contents of any two tables.
+
+	$diff->connect($pdo)
+		->compare($columns)
+		->from('products_backup', 'products')
+		->where('vendor', 'Acme')
+		->primaryKey('product_id')
+		->output();
+
+
+## Requirements
+
+DiffDB requires PHP 7.1 or above.
+
+## Installation
+
+Install with Composer:
+
+	$ composer require gbradley/diffdb
+
+## Usage
+
+Note: with the exception of the "final" methods such as `output()`, `each()` and `count()`, DiffDB methods are chainable for a fluent interface.
+
+### Connecting to the database
+
+Start by creating an instance of DiffDB and passing a configured PDO connection in the constructor:
+
+	$pdo = new PDO(...);
+	$diff = new DiffFB($pdo);
+	
+If you use a framework with dependency injection such as Laravel, you can instead pass the PDO connection separately with `connect`:
+
+	someMethod(DiffDB $diff) {
+		$diff->connect(DB::connection()->pdo());
+	}
+	
+### Specifying columns to compare
+
+Next, use the `columns()` method to specify an array of table columns you wish to compare.
+
+	$diff->connect([
+		'name',
+		'vendor',
+		'cost',
+		'price',
+		'last_updated'
+	]);
+	
+### Specifying tables
+
+Tell DiffDB which tables you're accessing with the `from()` method:
+
+	$diff->from('products_backup', 'products');
+
+Using terminology from Git, the first argument is the *source* and the second is the *destination*.
+	
+To specify the database where your tables are located, pass the database name as the third argument. If your tables are in different databases, pass the *source* and *destination* databases in the 3rd and 4th arguments.
+
+	$diff->from('products', 'products', 'db_backup', 'db');
+	
+### Add constraints
+
+You may only be interested in a subset of the data in your table. If so, use `where()` to limit results to rows where the condition is true in either table:
+
+	$diff->where('vendor', 'Acme');
+	
+### Primary key
+
+By default the primary key on your tables is assumed to be `id`, but you may override this with `primaryKey()`:
+
+	$diff->primaryKey('product_id');
+	
+### Output results
+
+By default, calling `output()` will compute the diff and echo the results. Each result in the diff is shown with the ID and the columns & values which differed between tables.
+
+To do something else with each result, pass a method to `output()` which accepts a single result.
+
+	$diff->output(function($result) {
+		Log::($result);
+	});
+
+### Customizing the output format
+
+When using `output()`, the Formatter class is used to format the results for each diff. If needed, you may subclass Formatter and provide an instance of your class to the `format()` method:
+
+	$diff->format(new MyCustomFormatter);
+	
+### Accessing raw data
+
+Of course, you may wish to avoid formatting completely and access the raw data from each diff. To do so, call the `each()` method, passing a function which accepts the ID and source & destination arrays:
+
+	$diff->each(function($id, $source, $destination) {
+		...
+	});
+	
+For each computed diff, this function will be passed the columns & values from each table where the values differ.
+
+### Counting results
+
+Both the `output()` and `each()` methods return the number of diff results, but if you wish to obtain this number without processing the records, use `count()` instead. This utilises SQL's `COUNT` aggregate function to avoid returning large amounts of data to your server.

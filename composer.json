@@ -1,0 +1,24 @@
+{
+    "name": "gbradley/diffdb",
+    "type": "library",
+    "description": "Diffs for your SQL database tables",
+    "keywords": ["sql","diff"],
+    "homepage": "https://github.com/gbradley/diffdb",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Graham Bradley",
+            "email": "hello@gbradley.com",
+            "homepage": "https://gbradley.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=7.1.0"
+    },
+    "autoload": {
+        "psr-4": {
+        	"GBradley\\DiffDB": "src"
+        }
+    }
+}
