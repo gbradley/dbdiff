@@ -1,11 +1,11 @@
 <?php
 
-namespace GBradley\DiffDB;
+namespace GBradley\DBDiff;
 
 use PDO;
 use PDOStatement;
 
-class DiffDB {
+class DBDiff {
 
 	protected $pdo;
 	protected $table_src;
@@ -25,7 +25,7 @@ class DiffDB {
 	/**
 	 * Set the PDF connection used to execute the query.
 	 */
-	public function connect(PDO $pdo) : DiffDB {
+	public function connect(PDO $pdo) : DBDiff {
 		$this->pdo = $pdo;
 		return $this;
 	}
@@ -33,7 +33,7 @@ class DiffDB {
 	/**
 	 * Set the columns to compare.
 	 */
-	public function compare(array $columns) : DiffDB {
+	public function compare(array $columns) : DBDiff {
 		$this->columns = $columns;
 		return $this;
 	}
@@ -41,7 +41,7 @@ class DiffDB {
 	/**
 	 * Specify the source and destination tables (and optionally the database).
 	 */
-	public function from(string $table_src, string $table_dest, string $database = null, string $database_dest = null) : DiffDB {
+	public function from(string $table_src, string $table_dest, string $database = null, string $database_dest = null) : DBDiff {
 
 		$this->table_src = $table_src;
 		$this->table_dest = $table_dest;
@@ -65,7 +65,7 @@ class DiffDB {
 	 * Set a column & value constraint which either the source or destination column must pass for the row to be
 	 * included in the resultset.
 	 */
-	public function where(string $column, $value) : DiffDB {
+	public function where(string $column, $value) : DBDiff {
 		$this->constraints[$column] = $value;
 		return $this;
 	}
@@ -73,7 +73,7 @@ class DiffDB {
 	/**
 	 * Set the primary key for both tables.
 	 */
-	public function primaryKey(string $primary_key) : DiffDB {
+	public function primaryKey(string $primary_key) : DBDiff {
 		$this->primary_key = $primary_key;
 		return $this;
 	}
@@ -81,7 +81,7 @@ class DiffDB {
 	/**
 	 * Set the formatter to use when outputting results.
 	 */
-	public function format(Formatter $formatter) : DiffDB {
+	public function format(Formatter $formatter) : DBDiff {
 		$this->formatter = $formatter;
 		return $this;
 	}

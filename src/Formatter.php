@@ -1,6 +1,6 @@
 <?php
 
-namespace GBradley\DiffDB;
+namespace GBradley\DBDiff;
 
 class Formatter {
 

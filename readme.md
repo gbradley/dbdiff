@@ -1,6 +1,6 @@
-# DiffDB
+# DBDiff
 
-Diffs for your SQL database tables. DiffDB lets you compare the contents of any two tables.
+Diffs for your SQL database tables. DBDiff lets you compare the contents of any two tables.
 
 	$diff->connect($pdo)
 		->compare($columns)
@@ -13,7 +13,7 @@ Diffs for your SQL database tables. DiffDB lets you compare the contents of any 
 
 ## Requirements
 
-DiffDB requires PHP 7.1 or above.
+DBDiff requires PHP 7.1 or above.
 
 ## Installation
 
@@ -23,18 +23,18 @@ Install with Composer:
 
 ## Usage
 
-Note: with the exception of the "final" methods such as `output()`, `each()` and `count()`, DiffDB methods are chainable for a fluent interface.
+Note: with the exception of the "final" methods such as `output()`, `each()` and `count()`, DBDiff methods are chainable for a fluent interface.
 
 ### Connecting to the database
 
-Start by creating an instance of DiffDB and passing a configured PDO connection in the constructor:
+Start by creating an instance of DBDiff and passing a configured PDO connection in the constructor:
 
 	$pdo = new PDO(...);
 	$diff = new DiffFB($pdo);
 	
 If you use a framework with dependency injection such as Laravel, you can instead pass the PDO connection separately with `connect`:
 
-	someMethod(DiffDB $diff) {
+	someMethod(DBDiff $diff) {
 		$diff->connect(DB::connection()->pdo());
 	}
 	
@@ -52,7 +52,7 @@ Next, use the `columns()` method to specify an array of table columns you wish t
 	
 ### Specifying tables
 
-Tell DiffDB which tables you're accessing with the `from()` method:
+Tell DBDiff which tables you're accessing with the `from()` method:
 
 	$diff->from('products_backup', 'products');
 

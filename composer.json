@@ -1,9 +1,9 @@
 {
-    "name": "gbradley/diffdb",
+    "name": "gbradley/dbdiff",
     "type": "library",
     "description": "Diffs for your SQL database tables",
     "keywords": ["sql","diff"],
-    "homepage": "https://github.com/gbradley/diffdb",
+    "homepage": "https://github.com/gbradley/dbdiff",
     "license": "MIT",
     "authors": [
         {
@@ -18,7 +18,7 @@
     },
     "autoload": {
         "psr-4": {
-        	"GBradley\\DiffDB\\": "src"
+        	"GBradley\\DBDiff\\": "src"
         }
     }
 }
