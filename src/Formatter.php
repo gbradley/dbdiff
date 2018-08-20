@@ -43,7 +43,7 @@ class Formatter {
 		}
 
 		// Add a separator between the column names and the values.
-		$rows[1] = str_repeat('_', max(mb_strlen($rows[0]), mb_strlen($rows[2]), mb_strlen($rows[3])));
+		$rows[1] = str_repeat('_', mb_strlen($rows[0]));
 
 		return implode(PHP_EOL, $rows) . PHP_EOL . PHP_EOL;
 	}

@@ -5,9 +5,10 @@ Diffs for your SQL database tables. DiffDB lets you compare the contents of any 
 	$diff->connect($pdo)
 		->compare($columns)
 		->from('products_backup', 'products')
-		->where('vendor', 'Acme')
-		->primaryKey('product_id')
+		->where('vendor', 'Wayland-Yutani')
 		->output();
+
+<img src="assets/example.png" />
 
 
 ## Requirements
