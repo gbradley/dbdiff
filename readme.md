@@ -40,7 +40,7 @@ If you use a framework with dependency injection such as Laravel, you can instea
 	
 ### Specifying columns to compare
 
-Next, use the `columns()` method to specify an array of table columns you wish to compare.
+Next, use the `compare()` method to specify an array of table columns you wish to compare.
 
 	$diff->compare([
 		'name',
@@ -66,7 +66,7 @@ To specify the database where your tables are located, pass the database name as
 
 You may only be interested in a subset of the data in your table. If so, use `where()` to limit results to rows where the condition is true in either table:
 
-	$diff->where('vendor', 'Acme');
+	$diff->where('vendor', 'Wayland-Yutani');
 	
 ### Primary key
 

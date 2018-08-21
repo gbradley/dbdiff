@@ -13,6 +13,13 @@ class Formatter {
 	}
 
 	/**
+	 * Format and return a header result.
+	 */
+	public function header(string $table_src, string $table_dest) : ?String {
+		return null;
+	}
+
+	/**
 	 * Format a diff result and return the foromatting string.
 	 */
 	public function format($id, array $row_a = null, array $row_b = null, string $table_src, string $table_dest) : string {
@@ -67,7 +74,7 @@ class Formatter {
 		// Truncate to the given length, adding quotes & ellipsis as needed.
 		$ellipsis = '...';
 		$max = mb_strlen($value) > $length ? $length - strlen($ellipsis) : $length;
-		$value = mb_substr($value, 0, $max) . ($max < $length ? $ellipsis : '');	
+		$value = mb_substr($value, 0, $max) . ($max < $length ? $ellipsis : '');
 
 		return $quote ? '"' . $value . '"' : $value;
 	}

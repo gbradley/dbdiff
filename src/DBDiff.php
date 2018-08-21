@@ -121,10 +121,17 @@ class DBDiff {
 			};
 		}
 
+		$formatter = $this->getFormatter();
+
+		// Pass the header result to the handler if needed.
+		if ($header = $formatter->header($this->table_src, $this->table_dest)) {
+			$handler($header);
+		}
+
 		// Create a function which will accept the diff and pass the formatted reuslt to the handler.
-		$processor = function($id, $source, $dest) use ($handler) {
+		$processor = function($id, $source, $dest) use ($handler, $formatter) {
 			$handler(
-				$this->getFormatter()->format(
+				$formatter->format(
 					$id,
 					$source,
 					$dest,
