@@ -129,12 +129,14 @@ class DBDiff {
 		}
 
 		// Create a function which will accept the diff and pass the formatted reuslt to the handler.
-		$processor = function($id, $source, $dest) use ($handler, $formatter) {
+		$processor = function($id, $diff_src, $diff_dest, $row_src, $row_dest) use ($handler, $formatter) {
 			$handler(
 				$formatter->format(
 					$id,
-					$source,
-					$dest,
+					$diff_src,
+					$diff_dest,
+					$row_src,
+					$row_dest,
 					$this->table_src,
 					$this->table_dest
 				)
@@ -185,6 +187,8 @@ class DBDiff {
 			$id,
 			$exists[$this->table_src_alias] ? array_diff_assoc($data[$this->table_src_alias], $data[$this->table_dest_alias]) : null,
 			$exists[$this->table_dest_alias] ? array_diff_assoc($data[$this->table_dest_alias], $data[$this->table_src_alias]) : null,
+			$data[$this->table_src_alias],
+			$data[$this->table_dest_alias],
 		];
 	}
 
