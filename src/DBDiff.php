@@ -13,6 +13,7 @@ class DBDiff {
 	protected $database_src;
 	protected $database_dest;
 	protected $constraints = [];
+	protected $comparators = [];
 	protected $columns;
 	protected $primary_key = 'id';
 	protected $bindings = [];
@@ -87,6 +88,14 @@ class DBDiff {
 	}
 
 	/**
+	 * Set the custom comparator functions.
+	 */
+	public function usingComparators(array $comparators) : DBDiff {
+		$this->comparators = $comparators;
+		return $this;
+	}
+
+	/**
 	 * Execute the query and return the number of results.
 	 */
 	public function count() : int {
@@ -102,8 +111,10 @@ class DBDiff {
 		$count = 0;
 		$query = $this->getQuery($this->getSql());
 		while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-			call_user_func_array($callback, $this->diffRow($row));
-			$count++;
+			if ($result = $this->diffRow($row)) {
+				call_user_func_array($callback, $result);
+				$count++;
+			}
 		}
 		return $count;
 	}
@@ -128,7 +139,7 @@ class DBDiff {
 			$handler($header);
 		}
 
-		// Create a function which will accept the diff and pass the formatted reuslt to the handler.
+		// Create a function which will accept the diff and pass the formatted result to the handler.
 		$processor = function($id, $diff_src, $diff_dest, $row_src, $row_dest) use ($handler, $formatter) {
 			$handler(
 				$formatter->format(
@@ -149,7 +160,7 @@ class DBDiff {
 	/**
 	 * Given a row of data returned from the query results, extract the row data into id plus source & destination arrays.
 	 */
-	protected function diffRow($row) : array {
+	protected function diffRow($row) : ?array {
 
 		// Create an array to store the retrieved results.
 		$data = [
@@ -182,14 +193,37 @@ class DBDiff {
 			}
 		}
 
-		// Return the data by computing the diff between the two arrays in each direction. If the row doesn't exist, just return null.
+		// Compute the diff between the two arrays in each direction. If the row doesn't exist, just return null.
+		$src_diff = $exists[$this->table_src_alias] ? array_diff_assoc($data[$this->table_src_alias], $data[$this->table_dest_alias]) : null;
+		$dest_diff = $exists[$this->table_dest_alias] ? array_diff_assoc($data[$this->table_dest_alias], $data[$this->table_src_alias]) : null;
+
+		// Run any custom comparitors, existing early if the diffs are empty after doing so.
+		if (count($this->comparators) && $src_diff !== null && $dest_diff !== null) {
+			$this->runComparators($src_diff, $dest_diff);
+			if (empty($src_diff)) {
+				return null;
+			}
+		}
+
 		return [
 			$id,
-			$exists[$this->table_src_alias] ? array_diff_assoc($data[$this->table_src_alias], $data[$this->table_dest_alias]) : null,
-			$exists[$this->table_dest_alias] ? array_diff_assoc($data[$this->table_dest_alias], $data[$this->table_src_alias]) : null,
+			$src_diff,
+			$dest_diff,
 			$data[$this->table_src_alias],
 			$data[$this->table_dest_alias],
 		];
+	}
+
+	/**
+	 * For two result sets, remove any columns where values are considered equal according to the user-provided comparator functions.
+	 */
+	protected function runComparators(array &$src, array &$dest) {
+		foreach ($this->comparators as $column => $comparator) {
+			if (array_key_exists($column, $src) && $comparator($src[$column], $dest[$column])) {
+				unset($src[$column]);
+				unset($dest[$column]);
+			}
+		}
 	}
 
 	/**

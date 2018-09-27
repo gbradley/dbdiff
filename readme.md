@@ -23,6 +23,15 @@ Install with Composer:
 
 ## Usage
 
+- [Connecting to the database](#connecting-to-the-database)
+- [Specifying columns to compare](#specifying-columns-to-compare)
+- [Specifying tables](#specifying-tables)
+- [Adding constraints](#adding-constraints)
+- [Primary key](#primary-key)
+- [Results](#output-results)
+- [Custom comparisons](#custom-comparisons)
+
+
 Note: with the exception of the "final" methods such as `output()`, `each()` and `count()`, DBDiff methods are chainable for a fluent interface.
 
 ### Connecting to the database
@@ -35,7 +44,7 @@ Start by creating an instance of DBDiff and passing a configured PDO connection 
 If you use a framework with dependency injection such as Laravel, you can instead pass the PDO connection separately with `connect`:
 
 	someMethod(DBDiff $diff) {
-		$diff->connect(DB::connection()->pdo());
+		$diff->connect(DB::connection()->getPdo());
 	}
 	
 ### Specifying columns to compare
@@ -74,7 +83,7 @@ By default the primary key on your tables is assumed to be `id`, but you may ove
 
 	$diff->primaryKey('product_id');
 	
-### Output results
+### Results
 
 By default, calling `output()` will compute the diff and echo the results. Each result in the diff is shown with the ID and the columns & values which differed between tables.
 
@@ -84,13 +93,13 @@ To do something else with each result, pass a method to `output()` which accepts
 		Log::info($result);
 	});
 
-### Customizing the output format
+#### Customizing the output format
 
 When using `output()`, the `DBDiff\Formatter` class is used to format the results for each diff. If needed, you may subclass Formatter and provide an instance of your class to the `format()` method:
 
 	$diff->format(new MyCustomFormatter);
 	
-### Accessing raw data
+#### Accessing raw data
 
 Of course, you may wish to avoid formatting completely and access the raw data from each diff. To do so, call the `each()` method, passing a function which accepts the ID and source & destination arrays:
 
@@ -100,6 +109,24 @@ Of course, you may wish to avoid formatting completely and access the raw data f
 	
 For each computed diff, this function will be passed the columns & values from each table where the values differ.
 
-### Counting results
+#### Counting results
 
 Both the `output()` and `each()` methods return the number of diff results, but if you wish to obtain this number without processing the records, use `count()` instead. This utilises SQL's `COUNT` aggregate function to avoid returning large amounts of data to your server.
+
+### Custom comparisons
+
+DBDiff uses SQL to perform its data comparison, meaning that your results will be computed according to your underlying database engine. Typically this means using strict comparison including case sensitivity.
+
+If you need more control over equality, you can define comparator functions. These allow you to perform further equality checks on the data that DBDiff returns.
+
+For example, let's say your data sometimes contains leading or trailing whitespace, due to manual data entry. To prevent DBDiff from reporting this, start by defining a function which accepts two values, returning `true` if they are to be considered equal:
+
+	$ignore_whitespace = function($a, $b) {
+		return trim($a) === trim($b);
+	};
+	
+You can now pass this function to the `usingComparators()` method, specifying which columns should use the comparator:
+
+	$diff->usingComparators([
+		'name' => $ignore_whitespace
+	]);
