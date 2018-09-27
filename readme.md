@@ -28,7 +28,7 @@ Install with Composer:
 - [Specifying tables](#specifying-tables)
 - [Adding constraints](#adding-constraints)
 - [Primary key](#primary-key)
-- [Results](#output-results)
+- [Results](#results)
 - [Custom comparisons](#custom-comparisons)
 
 
@@ -71,7 +71,7 @@ To specify the database where your tables are located, pass the database name as
 
 	$diff->from('products', 'products', 'db_backup', 'db');
 	
-### Add constraints
+### Adding constraints
 
 You may only be interested in a subset of the data in your table. If so, use `where()` to limit results to rows where the condition is true in either table:
 
@@ -119,13 +119,13 @@ DBDiff uses SQL to perform its data comparison, meaning that your results will b
 
 If you need more control over equality, you can define comparator functions. These allow you to perform further equality checks on the data that DBDiff returns.
 
-For example, let's say your data sometimes contains leading or trailing whitespace, due to manual data entry. To prevent DBDiff from reporting this, start by defining a function which accepts two values, returning `true` if they are to be considered equal:
+For example, let's say your data sometimes contains leading or trailing whitespace, due to manual data entry. To prevent DBDiff from reporting this, define a function which accepts two values, returning `true` if they are to be considered equal:
 
 	$ignore_whitespace = function($a, $b) {
 		return trim($a) === trim($b);
 	};
 	
-You can now pass this function to the `usingComparators()` method, specifying which columns should use the comparator:
+You can now call the `usingComparators()` method, specifying which columns should use the comparator:
 
 	$diff->usingComparators([
 		'name' => $ignore_whitespace
