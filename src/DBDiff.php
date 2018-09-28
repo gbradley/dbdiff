@@ -13,7 +13,7 @@ class DBDiff {
 	protected $database_src;
 	protected $database_dest;
 	protected $constraints = [];
-	protected $comparators = [];
+	protected $modifiers = [];
 	protected $columns;
 	protected $primary_key = 'id';
 	protected $bindings = [];
@@ -88,10 +88,12 @@ class DBDiff {
 	}
 
 	/**
-	 * Set the custom comparator functions.
+	 * Set the custom modifier functions.
 	 */
-	public function usingComparators(array $comparators) : DBDiff {
-		$this->comparators = $comparators;
+	public function usingModifiers(array $modifiers) : DBDiff {
+		$this->modifiers = array_map(function($callables) {
+			return is_array($callables) ? $callables : [$callables];
+		}, $modifiers);
 		return $this;
 	}
 
@@ -197,9 +199,9 @@ class DBDiff {
 		$src_diff = $exists[$this->table_src_alias] ? array_diff_assoc($data[$this->table_src_alias], $data[$this->table_dest_alias]) : null;
 		$dest_diff = $exists[$this->table_dest_alias] ? array_diff_assoc($data[$this->table_dest_alias], $data[$this->table_src_alias]) : null;
 
-		// Run any custom comparitors, existing early if the diffs are empty after doing so.
-		if (count($this->comparators) && $src_diff !== null && $dest_diff !== null) {
-			$this->runComparators($src_diff, $dest_diff);
+		// Run any modifiers, existing early if the diffs are empty after doing so.
+		if (count($this->modifiers) && $src_diff !== null && $dest_diff !== null) {
+			$this->runModifiers($src_diff, $dest_diff);
 			if (empty($src_diff)) {
 				return null;
 			}
@@ -215,15 +217,24 @@ class DBDiff {
 	}
 
 	/**
-	 * For two result sets, remove any columns where values are considered equal according to the user-provided comparator functions.
+	 * For two result sets, remove any columns where values are considered equal after applying the user-provided modifier functions.
 	 */
-	protected function runComparators(array &$src, array &$dest) {
-		foreach ($this->comparators as $column => $comparator) {
-			if (array_key_exists($column, $src) && $comparator($src[$column], $dest[$column])) {
+	protected function runModifiers(array &$src, array &$dest) {
+		foreach ($this->modifiers as $column => $modifiers) {
+			if (array_key_exists($column, $src) && ($this->applyModifiers($src[$column], $modifiers) === $this->applyModifiers($dest[$column], $modifiers))) {
 				unset($src[$column]);
 				unset($dest[$column]);
 			}
 		}
+	}
+
+	/**
+	 * Pass a value through an array of modifiers.
+	 */
+	protected function applyModifiers($value, array $modifiers) {
+		return array_reduce($modifiers, function($carry, $modifier) {
+			return $modifier($carry);
+		}, $value);
 	}
 
 	/**
