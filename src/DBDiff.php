@@ -19,6 +19,7 @@ class DBDiff {
 	protected $primary_key = 'id';
 	protected $bindings = [];
 	protected $formatter;
+	protected $max = 0;
 
 	public function __construct(PDO $pdo = null) {
 		$this->pdo = $pdo;
@@ -81,6 +82,14 @@ class DBDiff {
 	}
 
 	/**
+	 * Set the max records to process.
+	 */
+	public function max(int $max) : DBDiff {
+		$this->max = $max;
+		return $this;
+	}
+
+	/**
 	 * Set the formatter to use when outputting results.
 	 */
 	public function format(Formatter $formatter) : DBDiff {
@@ -123,8 +132,10 @@ class DBDiff {
 		$query = $this->getQuery($this->getSql());
 		while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
 			if ($result = $this->diffRow($row)) {
-				call_user_func_array($callback, $result);
 				$count++;
+				if (call_user_func_array($callback, $result) === false || $count == $this->max) {
+					break;
+				}
 			}
 		}
 		return $count;
