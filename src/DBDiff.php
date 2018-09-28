@@ -13,7 +13,8 @@ class DBDiff {
 	protected $database_src;
 	protected $database_dest;
 	protected $constraints = [];
-	protected $modifiers = [];
+	protected $normalizers = [];
+	protected $comparators = [];
 	protected $columns;
 	protected $primary_key = 'id';
 	protected $bindings = [];
@@ -88,12 +89,20 @@ class DBDiff {
 	}
 
 	/**
-	 * Set the custom modifier functions.
+	 * Set the custom normalizer functions.
 	 */
-	public function usingModifiers(array $modifiers) : DBDiff {
-		$this->modifiers = array_map(function($callables) {
+	public function usingNormalizers(array $normalizers) : DBDiff {
+		$this->normalizers = array_map(function($callables) {
 			return is_array($callables) ? $callables : [$callables];
-		}, $modifiers);
+		}, $normalizers);
+		return $this;
+	}
+
+	/**
+	 * Set the custom comparator functions.
+	 */
+	public function usingComparators(array $comparators) : DBDiff {
+		$this->comparators = $comparators;
 		return $this;
 	}
 
@@ -199,9 +208,9 @@ class DBDiff {
 		$src_diff = $exists[$this->table_src_alias] ? array_diff_assoc($data[$this->table_src_alias], $data[$this->table_dest_alias]) : null;
 		$dest_diff = $exists[$this->table_dest_alias] ? array_diff_assoc($data[$this->table_dest_alias], $data[$this->table_src_alias]) : null;
 
-		// Run any modifiers, existing early if the diffs are empty after doing so.
-		if (count($this->modifiers) && $src_diff !== null && $dest_diff !== null) {
-			$this->runModifiers($src_diff, $dest_diff);
+		// If data exists in both sets, perform fuzzy matching if requested.
+		if ($src_diff !== null && $dest_diff !== null && (count($this->normalizers) || count($this->comparators))) {
+			$this->fuzzyMatch($src_diff, $dest_diff);
 			if (empty($src_diff)) {
 				return null;
 			}
@@ -217,24 +226,61 @@ class DBDiff {
 	}
 
 	/**
-	 * For two result sets, remove any columns where values are considered equal after applying the user-provided modifier functions.
+	 * Perform fuzzy matching.
 	 */
-	protected function runModifiers(array &$src, array &$dest) {
-		foreach ($this->modifiers as $column => $modifiers) {
-			if (array_key_exists($column, $src) && ($this->applyModifiers($src[$column], $modifiers) === $this->applyModifiers($dest[$column], $modifiers))) {
+	protected function fuzzyMatch(array &$src, array &$dest) {
+
+		// The normalizers should operate on copies of the diffs to avoid modifying the originals.
+		$src_data = $src;
+		$dest_data = $dest;
+
+		$this->runNormalizers($src_data, $dest_data);
+		$this->runComparators($src_data, $dest_data);
+
+		// Remove any keys that passed the comparator test from the originals.
+		$src = array_intersect_key($src, $src_data);
+		$dest = array_intersect_key($dest, $dest_data);
+	}
+
+	/**
+	 * For two result sets, applying the user-provided normalizer functions.
+	 */
+	protected function runNormalizers(array &$src, array &$dest) {
+		foreach ($this->normalizers as $column => $normalizers) {
+			if (array_key_exists($column, $src)) {
+				$src[$column] = $this->applyNormalizers($src[$column], $normalizers);
+				$dest[$column] = $this->applyNormalizers($dest[$column], $normalizers);
+
+				// If there is no comparator defined for this column, then set a strict comparator.
+				if (!array_key_exists($column, $this->comparators)) {
+					$this->setDefaultComparator($column);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Pass a value through an array of normalizers.
+	 */
+	protected function applyNormalizers($value, array $normalizers) {
+		return array_reduce($normalizers, function($carry, $normalizer) {
+			return $normalizer($carry);
+		}, $value);
+	}
+
+	protected function runComparators(array &$src, array &$dest) {
+		foreach ($this->comparators as $column => $comparator) {
+			if (array_key_exists($column, $src) && $comparator($src[$column], $dest[$column])) {
 				unset($src[$column]);
 				unset($dest[$column]);
 			}
 		}
 	}
 
-	/**
-	 * Pass a value through an array of modifiers.
-	 */
-	protected function applyModifiers($value, array $modifiers) {
-		return array_reduce($modifiers, function($carry, $modifier) {
-			return $modifier($carry);
-		}, $value);
+	protected function setDefaultComparator(string $column) {
+		$this->comparators[$column] = function($a, $b) {
+			return $a === $b;
+		};
 	}
 
 	/**
