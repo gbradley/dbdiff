@@ -152,17 +152,6 @@ You may also provide your own functions. For example, if some of your names are 
 		'name' => ['trim', 'mb_strtolower', $ignore_titles]
 	]);
 	
-You may also provide your own functions. For example, if some of your names are prefixed with titles, you can ignore them:
-
-	$titles = '/^(mr|mrs|dr)\s+/';
-	$ignore_titles = function($value) use ($titles) {
-		return preg_replace($titles, '', $value);
-	};
-	
-	$diff-> usingNormalizers([
-		'name' => ['trim', 'mb_strtolower', $ignore_titles]
-	]);
-	
 #### Comparators
 
 Normalizers still use strict comparison after the values have been normalized. On the other hand, comparators provide you with both values to perform the comparison yourself.
