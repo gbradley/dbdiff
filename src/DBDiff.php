@@ -57,8 +57,8 @@ class DBDiff {
 		$this->table_src_alias = 's';
 		$this->table_dest_alias = 'd';
 		$this->aliases = [
-			$this->table_src 	=> $this->table_src_alias,
-			$this->table_dest 	=> $this->table_dest_alias,
+			$database . '.' . $this->table_src 	=> $this->table_src_alias,
+			$database_dest . '.' . $this->table_dest	=> $this->table_dest_alias,
 		];
 
 		return $this;
@@ -331,10 +331,10 @@ class DBDiff {
 	protected function selectStatement(string $from_table, string $join_table, string $from_database = null, string $join_database = null) : string {
 
 		$clauses = [];
-		$clauses[] = 'SELECT ' . $this->qualify($from_table, $this->primary_key) . ', ' . $this->selectClause($this->table_src) . ', ' . $this->selectClause($this->table_dest);
+		$clauses[] = 'SELECT ' . $this->qualify($from_table, $this->primary_key, $from_database) . ', ' . $this->selectClause($this->table_src, $this->database_src) . ', ' . $this->selectClause($this->table_dest, $this->database_dest);
 		$clauses[] = $this->fromClause($from_table, $from_database);
-		$clauses[] = $this->leftJoinClause($join_table, $join_database);
-		$clauses[] = $this->whereClause($from_table);
+		$clauses[] = $this->leftJoinClause($join_table, $join_database, $from_database);
+		$clauses[] = $this->whereClause($from_table, $from_database, $join_database);
 
 		return implode(' ', $clauses);
 	}
@@ -342,14 +342,14 @@ class DBDiff {
 	/**
 	 * Return the SELECT clause.
 	 */
-	protected function selectClause(string $table) : string {
+	protected function selectClause(string $table, string $database = null) : string {
 
 		// Select all the provided columns as well as the primary key. We explicitly request the PK under its own alias so we can
 		// differentiate between a row where all values are NULL and a row that doens't exist in the original table.
 		$columns = array_merge([$this->primary_key], $this->columns);
 
-		return implode(', ', array_map(function($column) use ($table) {
-			return $this->qualify($table, $column) . ' AS ' . $this->escape($this->alias($table) . '_' . $column);
+		return implode(', ', array_map(function($column) use ($table, $database) {
+			return $this->qualify($table, $column, $database) . ' AS ' . $this->escape($this->alias($table, $database) . '_' . $column);
 		}, $columns));
 	}
 
@@ -358,25 +358,25 @@ class DBDiff {
 	 */
 	protected function fromClause(string $table, string $database = null) : string {
 		$db = $database ? $this->escape($database) . '.' : '';
-		return 'FROM ' . $db . $this->escape($table) . ' AS ' . $this->alias($table);
+		return 'FROM ' . $db . $this->escape($table) . ' AS ' . $this->alias($table, $database);
 	}
 
 	/**
 	 * Return the JOIN clause to join the given table.
 	 */
-	protected function leftJoinClause(string $table, string $database = null) : string {
+	protected function leftJoinClause(string $table, string $database = null, string $join_database = null) : string {
 		$db = $database ? $this->escape($database) . '.' : '';
-		return 'LEFT JOIN ' . $db . $this->escape($table) . ' AS ' . $this->alias($table) . ' ON ' . $this->qualify($this->table_src, $this->primary_key) . ' = ' . $this->qualify($this->table_dest, $this->primary_key);
+		return 'LEFT JOIN ' . $db . $this->escape($table) . ' AS ' . $this->alias($table, $database) . ' ON ' . $this->qualify($this->table_src, $this->primary_key, $join_database) . ' = ' . $this->qualify($this->table_dest, $this->primary_key, $database);
 	}
 
 	/**
 	 * Return the WHERE clause for the query.
 	 */
-	protected function whereClause(string $table) : string {
+	protected function whereClause(string $table, string $database = null, string $join_database = null) : string {
 
 		$whereClauses = [
-			$this->whereConstraintsClause(),
-			$this->whereColumnsClause($table)
+			$this->whereConstraintsClause($database),
+			$this->whereColumnsClause($table, $database, $join_database)
 		];
 
 		return 'WHERE ' . implode(' AND ', array_filter($whereClauses));
@@ -385,10 +385,10 @@ class DBDiff {
 	/**
 	 * Return the WHERE clause for the constaints, testing for rows where the value in either table matches that given by the constraints.
 	 */
-	protected function whereConstraintsClause() : ?string {
+	protected function whereConstraintsClause(string $database = null) : ?string {
 		$parts = [];
 		foreach ($this->constraints as $column => $value) {
-			$parts[] = '(' . $this->qualify($this->table_src, $column) . ' = ? OR ' . $this->qualify($this->table_dest, $column) . ' = ?)';
+			$parts[] = '(' . $this->qualify($this->table_src, $column, $database) . ' = ? OR ' . $this->qualify($this->table_dest, $column, $database) . ' = ?)';
 			$this->bindings[] = $value;
 			$this->bindings[] = $value;
 		}
@@ -399,12 +399,12 @@ class DBDiff {
 	 * Return the WHERE clause for the columns, testing for at least one of the given columns not maching their value in
 	 * the corresponding table, or where the corresponding table doesn't have a row for the ID.
 	 */
-	protected function whereColumnsClause(string $table) : string {
-		$parts = array_map(function($column) {
-			return $this->qualify($this->table_src, $column) . ' <> ' . $this->qualify($this->table_dest, $column);
+	protected function whereColumnsClause(string $table, string $database = null, string $join_database = null) : string {
+		$parts = array_map(function($column) use ($database, $join_database) {
+			return $this->qualify($this->table_src, $column, $database) . ' <> ' . $this->qualify($this->table_dest, $column, $join_database);
 		}, $this->columns);
 
-		$parts[] = $this->qualify($table == $this->table_src ? $this->table_dest : $this->table_src, $this->primary_key) . ' IS NULL';
+		$parts[] = $this->qualify($table == $this->table_src ? $this->table_dest : $this->table_src, $this->primary_key, $join_database) . ' IS NULL';
 
 		return '(' . implode(' OR ', $parts) . ')';
 	}
@@ -412,8 +412,8 @@ class DBDiff {
 	/**
 	 * Return a column's qualified & aliased name.
 	 */
-	protected function qualify(string $table, string $column) : string {
-		return $this->alias($table) . '.' . $this->escape($column);
+	protected function qualify(string $table, string $column, string $database = null) : string {
+		return $this->alias($table, $database) . '.' . $this->escape($column);
 	}
 
 	/**
@@ -426,8 +426,8 @@ class DBDiff {
 	/**
 	 * Return a table's alias.
 	 */
-	protected function alias(string $table) : string {
-		return $this->aliases[$table];
+	protected function alias(string $table, string $database = null) : string {
+		return $this->aliases[$database . '.' . $table];
 	}
 
 }
